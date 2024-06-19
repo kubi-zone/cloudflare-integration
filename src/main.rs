@@ -28,13 +28,39 @@ struct Args {
 
 #[derive(Debug, Subcommand)]
 enum Command {
+    /// Run reconciliation loop
     Reconcile {
-        #[arg(env, long, default_value_t = 30)]
-        requeue_time_secs: u64,
+        /// Cloudflare API key used to access zones.
         #[arg(env, long)]
         cf_api_key: String,
+
+        /// Mode determines whether this controller is allowed to delete records.
+        ///
+        /// upsert: the controller will only create and update records.
+        /// delete: the controller will delete records, if they are removed from a zone.
+        ///
+        /// Note that in all cases, the controller will only update or delete records
+        /// which are managed by the controller. The controller tags the records it
+        /// creates in cloudflare to track ownership.
         #[arg(value_enum, env, long, default_value_t = Mode::Upsert)]
         mode: Mode,
+
+        /// Default time between reconciliation of zones.
+        ///
+        /// Reconciliation is triggered immediately if a zone is updated.
+        #[arg(env, long, default_value_t = 30)]
+        requeue_time_secs: u64,
+
+        /// Name used to tag records created in cloudflare.
+        ///
+        /// This can be overridden if you have multiple controllers managing separate
+        /// parts of a singular zone, and don't want them to interfere with each other.
+        ///
+        /// If two controllers are running with the same name, but they have access
+        /// to different Kubizone Zone resources, they will constantly identify records
+        /// created by the other controller as to-be-deleted.
+        #[arg(env, long, default_value = "kubizone-cloudflare")]
+        controller_name: String,
     },
 }
 
@@ -216,6 +242,7 @@ async fn main() {
             requeue_time_secs,
             cf_api_key,
             mode,
+            controller_name,
         } => {
             let cloudflare = CloudFlare::new(&cf_api_key);
 
@@ -236,7 +263,7 @@ async fn main() {
             rx.changed().await.unwrap();
 
             let context = Context {
-                controller_name: "kubizone-cloudflare".to_string(),
+                controller_name,
                 requeue_time: std::time::Duration::from_secs(requeue_time_secs),
                 cloudflare,
                 cf_domains: rx,
