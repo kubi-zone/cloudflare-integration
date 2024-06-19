@@ -16,3 +16,12 @@ spec:
   refresh: 86400
   retry: 7200
   ttl: 360
+---
+apiVersion: dev.kubi.zone/v1alpha1
+kind: Record
+metadata:
+  name: cf-test-kubi-zone
+spec:
+  domainName: cf-test.kubi.zone.
+  type: A
+  rdata: "127.0.0.1"
