@@ -43,13 +43,14 @@ jobs:
       - name: run cargo test
         run: cargo test --bins
 
-  tag:
+  publish:
     needs: [lint, test]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     name: tag version
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      packages: write
     steps:
       - name: checkout repository
         uses: actions/checkout@v4
