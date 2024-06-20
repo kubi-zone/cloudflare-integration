@@ -125,7 +125,7 @@ async fn reconcile(zone: Arc<Zone>, ctx: Arc<Context>) -> Result<Action, Error> 
         return Ok(Action::requeue(ctx.requeue_time));
     };
 
-    let cloudflare_zone = ctx.find_cloudflare_zone(&fqdn)?;
+    let cloudflare_zone = ctx.find_cloudflare_zone(fqdn)?;
 
     // Collect all existing entries in (RecordIdent, Record) map.
     let records = ctx
@@ -142,7 +142,7 @@ async fn reconcile(zone: Arc<Zone>, ctx: Arc<Context>) -> Result<Action, Error> 
         .as_ref()
         .map(|status| &status.entries)
         .ok_or(Error::ZoneHasNoEntries(zone.name_any()))?
-        .into_iter()
+        .iter()
         .filter(|entry| !entry.type_.is_soa())
         .map(|entry| (RecordIdent::from(entry), entry))
         .collect::<HashMap<_, _>>();
