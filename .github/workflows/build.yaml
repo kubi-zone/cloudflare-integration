@@ -41,7 +41,7 @@ jobs:
           toolchain: stable
 
       - name: run cargo test
-        run: cargo test --lib
+        run: cargo test --bins
 
   tag:
     needs: [lint, test]
