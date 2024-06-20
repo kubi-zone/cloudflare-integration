@@ -1,0 +1,41 @@
+on:
+  push:
+    tags:
+      - "v*"
+
+name: publish
+
+jobs:
+  build-release:
+    name: build operator
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/kubi-zone/kubizone-cloudflare
+          tags: |
+            type=semver,pattern={{version}}
+            type=schedule
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha
+
+      - name: build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=ghcr.io/kubi-zone/kubizone-cloudflare:buildcache
+          cache-to: type=registry,ref=ghcr.io/kubi-zone/kubizone-cloudflare:buildcache,mode=max
+
+      - uses: taiki-e/create-gh-release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: "refs/tags/v${{ steps.crate-version.outputs.version }}"
