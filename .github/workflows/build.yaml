@@ -73,6 +73,29 @@ jobs:
         with:
           file: "./Cargo.toml"
 
+      - name: docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/kubi-zone/kubizone-cloudflare
+          tags: |
+            type=semver,pattern={{version}}
+            type=schedule
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha
+
+      - name: build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=ghcr.io/kubi-zone/kubizone-cloudflare:buildcache
+          cache-to: type=registry,ref=ghcr.io/kubi-zone/kubizone-cloudflare:buildcache,mode=max
+
       - name: tag with crate version
         id: tag_version
         uses: mathieudutour/github-tag-action@v5.4
@@ -80,3 +103,8 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           tag_prefix: "v"
           custom_tag: ${{ steps.crate-version.outputs.version }}
+
+      - uses: taiki-e/create-gh-release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: "refs/tags/v${{ steps.crate-version.outputs.version }}"
